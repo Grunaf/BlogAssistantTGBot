@@ -14,7 +14,7 @@ async def handle_blogger_start(message: types.Message):
         role=UserRole.Blogger
     )
 
-    if user.is_confirmed:
+    if user.is_confirmed_blogger:
         await message.reply("Добро пожаловать, блогер! Вы подтвержденный клиент.")
     else:
         await message.reply(

@@ -18,7 +18,7 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True, index=True, nullable=False)
+    telegram_id = Column(BigInteger, unique=True, index=True, nullable=False)
     chat_id = Column(BigInteger, nullable=True)  # Поле для сохранения chat_id
     first_name = Column(String)
     last_name = Column(String)
@@ -39,7 +39,7 @@ class Channel(Base):
     __tablename__ = 'channels'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    telegram_id = Column(Integer, unique=True, nullable=False)
+    telegram_id = Column(BigInteger, unique=True, nullable=False)
     title = Column(String, nullable=True)
     username = Column(String, nullable=True)
     added_at = Column(DateTime, default=datetime.utcnow)

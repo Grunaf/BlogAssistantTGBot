@@ -14,7 +14,7 @@ class BlogMetricsService:
         self.bot = bot  # Экземпляр Telegram бота
         self.user_service = UserService(session)  # Создаем экземпляр UserService
 
-    def send_message_to_user(self, chat_id, user_id, message):
+    async def send_message_to_user(self, chat_id, user_id, message):
         """Отправка сообщения пользователю."""
         try:
             self.bot.send_message(chat_id=chat_id, text=message)
