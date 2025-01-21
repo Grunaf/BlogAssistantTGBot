@@ -1,12 +1,12 @@
+import os
 import requests
 from bot.models.user import Channel
 from bot.models.post import Post, PostMetric
 from bot.services.user_services import UserService 
 from datetime import datetime
 from bot.logger_instance import logger
-from config import API_TOKEN_METRIC
 
-TELEGRAM_API_URL = f"https://api.telegram.org/bot{API_TOKEN_METRIC}"
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{os.getenv('API_TOKEN_METRIC')}"
 
 class BlogMetricsService:
     def __init__(self, session, bot):
@@ -51,6 +51,56 @@ class BlogMetricsService:
             self.session.add(post_metric)
             self.session.commit()
 
+    def process_existing_posts(self, chat_id, user_id, posts, metric_intervals):
+        """
+        Обработка существующих постов при добавлении бота.
+        
+        Args:
+            chat_id (int): ID канала.
+            user_id (int): ID пользователя.
+            posts (list): Список постов из канала.
+            metric_intervals (list): Интервалы времени для сбора метрик в часах.
+        """
+        posts_to_process = []
+
+        for post in posts:
+            published_at = datetime.utcfromtimestamp(post["date"])
+            time_since_published = (datetime.utcnow() - published_at).total_seconds()
+
+            if time_since_published <= metric_intervals[-1] * 3600:
+                posts_to_process.append(post)
+            else:
+                # Если пост опубликован более 24 часов назад, прекращаем проверку
+                break
+
+        if not posts_to_process:
+            logger.info(f"Нет постов в канале {chat_id}, опубликованных в пределах {metric_intervals[-1]} часов.")
+            return
+
+        for post in posts_to_process:
+            published_at = datetime.utcfromtimestamp(post["date"])
+            time_since_publication = (datetime.utcnow() - published_at).total_seconds()
+
+            self.save_post(
+                chat_id=chat_id,
+                post_id=post["message_id"],
+                user_id=user_id,
+                text=post.get("text", ""),
+                published_at=datetime.utcfromtimestamp(post["date"]),
+            )
+
+            # Планируем сбор метрик для каждого интервала
+            for interval in metric_intervals:
+                interval_seconds = interval * 3600
+                if time_since_publication < interval_seconds:
+                    delay = interval_seconds - time_since_publication
+                    self.schedule_post_metrics(post["message_id"], chat_id, delay)
+            self.schedule_post_metrics(post["message_id"], chat_id, metric_intervals)
+
+        logger.info(f"Обработано {len(posts_to_process)} постов в канале {chat_id}.")
+
+
+
     def process_channel_administration(self, chat, user):
         """Обработка добавления бота в канал."""
         try:
@@ -67,6 +117,15 @@ class BlogMetricsService:
                     )
                     session.add(channel)
                     session.commit()
+
+
+                    # Получение существующих постов канала
+                    url = f"{TELEGRAM_API_URL}/getChatHistory"
+                    response = requests.get(url, params={"chat_id": chat["id"]})
+                    if response.status_code == 200:
+                        posts = response.json().get("result", [])
+                        self.process_existing_posts(chat["id"], existing_user.id, posts, metric_intervals=[6])
+
                     message_success_added_to_channel = f"Канал {chat['title']} успешно привязан к пользователю {existing_user.username}."
                     logger.info(message_success_added_to_channel)
                     self.send_message_to_user(chat["id"], existing_user.id, message_success_added_to_channel)

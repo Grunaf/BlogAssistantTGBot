@@ -1,11 +1,11 @@
 import asyncio
+import os
 from aiogram import Dispatcher, types
 from aiogram.filters.command import Command
 from bot.bot_instance import blogger_bot, audience_bot  # Импорт объекта Bot
 from flask_app import app  # Импорт Flask-приложения
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from config import DATABASE_URL  # Конфигурация
 from handlers.audience import handle_audience_start
 from handlers.blogger import handle_blogger_start, activate_blogger
 from bot.app import app
@@ -15,7 +15,7 @@ blogger_dp = Dispatcher()
 audience_dp = Dispatcher()
 
 # Инициализация базы данных
-engine = create_engine(DATABASE_URL)
+engine = create_engine(os.getenv("DATABASE_URL"))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 init_db()  # Создание таблиц в базе данных
 

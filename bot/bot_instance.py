@@ -1,5 +1,5 @@
 from aiogram import Bot
-from config import API_TOKEN_BLOGGER, API_TOKEN_AUDIENCE
+import os
 
-blogger_bot = Bot(token=API_TOKEN_BLOGGER)
-audience_bot = Bot(token=API_TOKEN_AUDIENCE)
+blogger_bot = Bot(token=os.getenv('API_TOKEN_BLOGGER'))
+audience_bot = Bot(token=os.getenv('API_TOKEN_AUDIENCE'))
